@@ -1,9 +1,25 @@
 import json
 import sys
+# import urllib2
+import requests
 from langdetect import detect
 from langdetect import detect_langs
+from bs4 import BeautifulSoup
+from bs4 import NavigableString
 
 json_file_list = sys.argv[1]
+
+
+def end_node(tag):
+    if tag.name not in ["div", "p", "li"]:
+        return False
+    if isinstance(tag,NavigableString): #if str return
+        return False
+    if not tag.text: #if no text return false
+        return False
+    elif len(tag.find_all(text=False)) > 0: #no other tags inside other than text
+        return False
+    return True #if valid it reaches here
 
 with open(json_file_list) as fp:
     for line in fp:
@@ -14,19 +30,30 @@ with open(json_file_list) as fp:
         with open(line.strip()) as jsonfp:
             for json_line in jsonfp:
                 total_count += 1
+                if total_count < 3:
+                    continue
                 curr_dict = json.loads(json_line.strip())
                 # print(curr_dict)
                 # quit()
                 if len(curr_dict['outlinks']) != 0:
                     outlink_count += 1
+                    page = requests.get(curr_dict['outlinks'][0])
+                    print(page)
+                    soup = BeautifulSoup(page.content, 'html.parser')
+                    # print(soup.prettify())
+                    # print(curr_dict['outlinks'][0])
+                    
+                    content = soup.find_all(end_node)
+                    print(content[2]) #all end nodes matching our criteria
+                    quit()
                     # print(detect_langs(curr_dict['content']))
                     # quit()
-                    try:
-                        if 'te' in detect_langs(curr_dict['content']):
-                            te_count += 1
-                    except:
-                        print(total_count, outlink_count, te_count)
-                        # pass
+                    # try:
+                    #     if 'te' in detect_langs(curr_dict['content']):
+                    #         te_count += 1
+                    # except:
+                    #     print(total_count, outlink_count, te_count)
+                    #     # pass
                     # print(detect_langs(curr_dict['content']))
                     # print(curr_dict['content'], curr_dict['outlinks'])
         print(total_count, outlink_count, te_count)
